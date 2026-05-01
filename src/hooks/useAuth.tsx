@@ -18,7 +18,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-
   const hasCheckedAdmin = useRef(false);
 
   useEffect(() => {
@@ -26,16 +25,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(s);
       setUser(s?.user ?? null);
       setLoading(false);
-
       if (s?.user && !hasCheckedAdmin.current) {
         hasCheckedAdmin.current = true;
-
-        // slight delay to avoid cold-start issues
         setTimeout(() => {
-          checkAdmin(s.user.id);
-        }, 500);
+          checkAdmin(s.user.id, 0);
+        }, 1200);
       }
-
       if (!s?.user) {
         setIsAdmin(false);
         hasCheckedAdmin.current = false;
@@ -55,19 +50,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  const checkAdmin = async (userId: string) => {
-    const { data, error } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .eq("role", "admin");
+  const checkAdmin = async (userId: string, retryCount: number = 0) => {
+    try {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "admin");
 
-    if (error) {
-      console.error("Admin check error:", error);
-      return;
+      console.log("ADMIN RESULT:", data, error);
+
+      if (error) {
+        console.error("Admin check error:", error);
+        if (retryCount < 3) {
+          const delay = Math.pow(2, retryCount) * 1000;
+          setTimeout(() => {
+            checkAdmin(userId, retryCount + 1);
+          }, delay);
+        }
+        return;
+      }
+
+      setIsAdmin(!!data?.length);
+    } catch (err) {
+      console.error("Network error:", err);
     }
-
-    setIsAdmin(!!data && data.length > 0);
   };
 
   const signInWithGoogle = async () => {
@@ -77,7 +84,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         redirectTo: `${window.location.origin}/admin`,
       },
     });
-
     if (error) throw error;
   };
 
