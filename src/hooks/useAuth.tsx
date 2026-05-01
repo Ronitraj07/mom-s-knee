@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useRef } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -11,6 +11,11 @@ type AuthCtx = {
   signOut: () => Promise<void>;
 };
 
+const ADMIN_EMAILS = [
+  "momsknee3@gmail.com",
+  "avabhishek50@gmail.com",
+];
+
 const AuthContext = createContext<AuthCtx | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -18,25 +23,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const hasCheckedAdmin = useRef(false);
 
   useEffect(() => {
     const handleSession = (s: Session | null) => {
       setSession(s);
       setUser(s?.user ?? null);
-      setLoading(false);
-      
-      if (s?.user && !hasCheckedAdmin.current) {
-        hasCheckedAdmin.current = true;
-        setTimeout(() => {
-          checkAdmin(s.user.id, 0);  // ✅ FIXED: removed [...](...) syntax
-        }, 1200);
-      }
-      
-      if (!s?.user) {
+
+      // ✅ ADMIN CHECK (INSTANT — NO API)
+      if (s?.user?.email && ADMIN_EMAILS.includes(s.user.email)) {
+        setIsAdmin(true);
+      } else {
         setIsAdmin(false);
-        hasCheckedAdmin.current = false;
       }
+
+      setLoading(false);
     };
 
     const { data: sub } = supabase.auth.onAuthStateChange(
@@ -52,33 +52,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  const checkAdmin = async (userId: string, retryCount: number = 0) => {
-    try {
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId)
-        .eq("role", "admin");
-
-      console.log("ADMIN RESULT:", data, error);
-
-      if (error) {
-        console.error("Admin check error:", error);
-        if (retryCount < 3) {
-          const delay = Math.pow(2, retryCount) * 1000;
-          setTimeout(() => {
-            checkAdmin(userId, retryCount + 1);
-          }, delay);
-        }
-        return;
-      }
-
-      setIsAdmin(!!data?.length);
-    } catch (err) {
-      console.error("Network error:", err);
-    }
-  };
-
   const signInWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -86,13 +59,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         redirectTo: `${window.location.origin}/admin`,
       },
     });
+
     if (error) throw error;
   };
 
   const signOut = async () => {
     await supabase.auth.signOut();
     setIsAdmin(false);
-    hasCheckedAdmin.current = false;
   };
 
   return (
