@@ -1,13 +1,21 @@
 import { Button } from "@/components/ui/button";
 import heroWoman from "@/assets/hero-woman.jpg";
+import { useSiteContent } from "@/hooks/useSiteContent";
+import type { ImagesContent } from "@/types/site-content";
 
 const Hero = () => {
+  // Pull the hero image URL from the CMS (Images & Socials admin panel).
+  // Falls back to the local static asset if no URL has been set yet.
+  const { content } = useSiteContent(["images"]);
+  const images = content.images as ImagesContent | undefined;
+  const heroSrc = images?.hero?.trim() || heroWoman;
+
   return (
     <section className="relative min-h-[92vh] w-full overflow-hidden bg-gradient-hero">
       {/* Background image */}
       <div className="absolute inset-0">
         <img
-          src={heroWoman}
+          src={heroSrc}
           alt="Woman walking freely outdoors at golden hour"
           width={1920}
           height={1080}

@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import type { SiteContentValue } from "@/types/site-content";
 
-type Row = { id: string; key: string; value: any };
+type Row = { id: string; key: string; value: SiteContentValue };
 
 const SOCIAL_FIELDS = [
   { field: "instagram", label: "Instagram URL" },
@@ -23,23 +24,31 @@ const IMAGE_FIELDS = [
 
 const Media = () => {
   const [rows, setRows] = useState<Row[]>([]);
-  const [drafts, setDrafts] = useState<Record<string, any>>({});
+  const [drafts, setDrafts] = useState<Record<string, Record<string, string>>>({});
   const [saving, setSaving] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
-      const { data, error } = await supabase.from("site_content").select("*").in("key", ["socials", "images"]);
+      const { data, error } = await supabase
+        .from("site_content")
+        .select("*")
+        .in("key", ["socials", "images"]);
       if (error) return toast.error(error.message);
       setRows(data ?? []);
-      const d: Record<string, any> = {};
-      (data ?? []).forEach((r) => (d[r.key] = { ...(r.value as Record<string, any>) }));
+      const d: Record<string, Record<string, string>> = {};
+      (data ?? []).forEach((r) => {
+        d[r.key] = { ...(r.value as Record<string, string>) };
+      });
       setDrafts(d);
     })();
   }, []);
 
   const save = async (row: Row) => {
     setSaving(row.id);
-    const { error } = await supabase.from("site_content").update({ value: drafts[row.key] }).eq("id", row.id);
+    const { error } = await supabase
+      .from("site_content")
+      .update({ value: drafts[row.key] })
+      .eq("id", row.id);
     setSaving(null);
     if (error) toast.error(error.message);
     else toast.success(`${row.key} updated`);

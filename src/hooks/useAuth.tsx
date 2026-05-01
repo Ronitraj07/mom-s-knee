@@ -11,12 +11,23 @@ type AuthCtx = {
   signOut: () => Promise<void>;
 };
 
-const ADMIN_EMAILS = [
-  "momsknee3@gmail.com",
-  "avabhishek50@gmail.com",
-];
-
 const AuthContext = createContext<AuthCtx | undefined>(undefined);
+
+/** Check admin role server-side via the has_role() DB function.
+ *  This replaces the hardcoded ADMIN_EMAILS array which was
+ *  (a) visible in the compiled JS bundle and
+ *  (b) entirely bypassable since it ran only on the client. */
+const checkIsAdmin = async (userId: string): Promise<boolean> => {
+  const { data, error } = await supabase.rpc("has_role", {
+    _role: "admin",
+    _user_id: userId,
+  });
+  if (error) {
+    console.error("[useAuth] has_role check failed:", error.message);
+    return false;
+  }
+  return data === true;
+};
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -25,17 +36,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const handleSession = (s: Session | null) => {
+    const handleSession = async (s: Session | null) => {
       setSession(s);
       setUser(s?.user ?? null);
-      setIsAdmin(
-        s?.user?.email ? ADMIN_EMAILS.includes(s.user.email) : false
-      );
+
+      if (s?.user?.id) {
+        const admin = await checkIsAdmin(s.user.id);
+        setIsAdmin(admin);
+      } else {
+        setIsAdmin(false);
+      }
+
       setLoading(false);
     };
 
-    // Rely solely on onAuthStateChange — it fires INITIAL_SESSION first,
-    // so we never need a separate getSession() call (which caused a race condition).
+    // Rely solely on onAuthStateChange — fires INITIAL_SESSION on mount,
+    // so no separate getSession() call is needed (that caused a race condition).
     const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
       handleSession(newSession);
     });

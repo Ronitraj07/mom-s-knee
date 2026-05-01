@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import type { SiteContentValue } from "@/types/site-content";
 
-type Row = { id: string; key: string; value: any; description: string | null };
+type Row = { id: string; key: string; value: SiteContentValue; description: string | null };
 
 const FIELDS: Record<string, { label: string; field: string; type?: "textarea" }[]> = {
   hero: [
@@ -24,16 +25,21 @@ const FIELDS: Record<string, { label: string; field: string; type?: "textarea" }
 
 const SiteContent = () => {
   const [rows, setRows] = useState<Row[]>([]);
-  const [drafts, setDrafts] = useState<Record<string, any>>({});
+  const [drafts, setDrafts] = useState<Record<string, Record<string, string>>>({});
   const [saving, setSaving] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
-      const { data, error } = await supabase.from("site_content").select("*").in("key", ["hero", "motto", "about"]);
+      const { data, error } = await supabase
+        .from("site_content")
+        .select("*")
+        .in("key", ["hero", "motto", "about"]);
       if (error) return toast.error(error.message);
       setRows(data ?? []);
-      const d: Record<string, any> = {};
-      (data ?? []).forEach((r) => (d[r.key] = { ...(r.value as Record<string, any>) }));
+      const d: Record<string, Record<string, string>> = {};
+      (data ?? []).forEach((r) => {
+        d[r.key] = { ...(r.value as Record<string, string>) };
+      });
       setDrafts(d);
     })();
   }, []);
