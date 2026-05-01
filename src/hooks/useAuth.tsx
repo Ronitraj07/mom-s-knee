@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useRef } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -19,29 +19,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // ✅ CRITICAL: prevents multiple API calls
+  const hasCheckedAdmin = useRef(false);
+
   useEffect(() => {
     const handleSession = (s: Session | null) => {
       setSession(s);
       setUser(s?.user ?? null);
 
-      // ✅ Always stop loading immediately (never block UI)
+      // ✅ stop loading immediately
       setLoading(false);
 
-      if (s?.user) {
-        checkAdmin(s.user.id); // 🔥 pass correct user id
-      } else {
+      if (s?.user && !hasCheckedAdmin.current) {
+        hasCheckedAdmin.current = true; // 🔥 LOCK
+        checkAdmin(s.user.id);
+      }
+
+      if (!s?.user) {
         setIsAdmin(false);
+        hasCheckedAdmin.current = false; // reset on logout
       }
     };
 
-    // 🔁 Listen to auth changes
+    // 🔁 Auth listener
     const { data: sub } = supabase.auth.onAuthStateChange(
       (_event, newSession) => {
         handleSession(newSession);
       }
     );
 
-    // 🔍 Initial session load
+    // 🔍 Initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       handleSession(session);
     });
@@ -49,7 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  // ✅ FIXED ADMIN CHECK (PER USER, MULTI-ROLE SAFE)
+  // ✅ CLEAN admin check (no retry, no loop)
   const checkAdmin = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -63,7 +70,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      setIsAdmin(data && data.length > 0);
+      setIsAdmin(!!data && data.length > 0);
     } catch (err) {
       console.error("Network error:", err);
     }
@@ -83,6 +90,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     await supabase.auth.signOut();
     setIsAdmin(false);
+    hasCheckedAdmin.current = false;
   };
 
   return (
