@@ -13,20 +13,10 @@ type AuthCtx = {
 
 const AuthContext = createContext<AuthCtx | undefined>(undefined);
 
-/** Check admin role server-side via the has_role() DB function.
- *  DB signature is: has_role(_user_id uuid, _role app_role)
- *  Note: _user_id comes FIRST — matching the existing RLS policy signature. */
-const checkIsAdmin = async (userId: string): Promise<boolean> => {
-  const { data, error } = await supabase.rpc("has_role", {
-    _user_id: userId,
-    _role: "admin",
-  });
-  if (error) {
-    console.error("[useAuth] has_role check failed:", error.message);
-    return false;
-  }
-  return data === true;
-};
+const ADMIN_EMAILS = [
+  "momsknee3@gmail.com",
+  "avabhishek50@gmail.com",
+];
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -35,22 +25,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const handleSession = async (s: Session | null) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-
-      if (s?.user?.id) {
-        const admin = await checkIsAdmin(s.user.id);
-        setIsAdmin(admin);
-      } else {
-        setIsAdmin(false);
-      }
-
-      setLoading(false);
-    };
-
     const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      handleSession(newSession);
+      setSession(newSession);
+      setUser(newSession?.user ?? null);
+      setIsAdmin(
+        newSession?.user?.email
+          ? ADMIN_EMAILS.includes(newSession.user.email)
+          : false
+      );
+      setLoading(false);
     });
 
     return () => sub.subscription.unsubscribe();
