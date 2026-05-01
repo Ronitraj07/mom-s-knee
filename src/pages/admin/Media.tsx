@@ -32,7 +32,7 @@ const Media = () => {
       if (error) return toast.error(error.message);
       setRows(data ?? []);
       const d: Record<string, any> = {};
-      (data ?? []).forEach((r) => (d[r.key] = { ...r.value }));
+      (data ?? []).forEach((r) => (d[r.key] = { ...(r.value as Record<string, any>) }));
       setDrafts(d);
     })();
   }, []);
