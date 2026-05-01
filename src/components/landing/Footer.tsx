@@ -10,7 +10,10 @@ const Footer = () => {
                 Launching soon
               </span>
             </div>
-            <p className="font-serif text-2xl text-foreground font-light italic">
+            <p className="font-serif text-3xl text-foreground font-light tracking-tight">
+              Mom's <span className="italic text-primary">Knee</span>
+            </p>
+            <p className="mt-2 font-serif text-sm text-muted-foreground italic">
               Move freely again.
             </p>
           </div>
@@ -29,7 +32,7 @@ const Footer = () => {
         </div>
 
         <div className="mt-10 pt-6 border-t border-border/60 flex flex-col md:flex-row justify-between gap-3 text-xs text-muted-foreground/80 font-light">
-          <p>© {new Date().getFullYear()} — All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Mom's Knee — All rights reserved.</p>
           <p className="italic">
             Statements have not been evaluated for diagnosis, treatment, or cure of any condition.
           </p>
