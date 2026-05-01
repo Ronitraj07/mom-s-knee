@@ -24,11 +24,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(s);
       setUser(s?.user ?? null);
 
-      // ✅ STOP loading immediately (never block UI)
+      // ✅ Always stop loading immediately (never block UI)
       setLoading(false);
 
       if (s?.user) {
-        checkAdmin(); // 🚀 async, no await
+        checkAdmin(s.user.id); // 🔥 pass correct user id
       } else {
         setIsAdmin(false);
       }
@@ -49,21 +49,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  // ✅ SAFE admin check (no blocking, no crash)
-  const checkAdmin = async () => {
+  // ✅ FIXED ADMIN CHECK (PER USER, MULTI-ROLE SAFE)
+  const checkAdmin = async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("role", "admin")
-        .maybeSingle();
+        .eq("user_id", userId)
+        .eq("role", "admin");
 
       if (error) {
         console.error("Admin check error:", error);
         return;
       }
 
-      setIsAdmin(!!data);
+      setIsAdmin(data && data.length > 0);
     } catch (err) {
       console.error("Network error:", err);
     }
