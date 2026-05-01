@@ -25,12 +25,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(s);
       setUser(s?.user ?? null);
       setLoading(false);
+      
       if (s?.user && !hasCheckedAdmin.current) {
         hasCheckedAdmin.current = true;
         setTimeout(() => {
-          checkAdmin(s.user.id, 0);
+          checkAdmin(s.user.id, 0);  // ✅ FIXED: removed [...](...) syntax
         }, 1200);
       }
+      
       if (!s?.user) {
         setIsAdmin(false);
         hasCheckedAdmin.current = false;
