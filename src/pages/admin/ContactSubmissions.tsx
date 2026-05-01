@@ -1,10 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type Row = {
   id: string;
@@ -19,7 +30,7 @@ const ContactSubmissions = () => {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("contact_submissions")
@@ -28,11 +39,11 @@ const ContactSubmissions = () => {
     setLoading(false);
     if (error) return toast.error(error.message);
     setRows(data ?? []);
-  };
+  }, []);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   const toggleRead = async (row: Row) => {
     const { error } = await supabase
@@ -44,7 +55,6 @@ const ContactSubmissions = () => {
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Delete this message?")) return;
     const { error } = await supabase.from("contact_submissions").delete().eq("id", id);
     if (error) return toast.error(error.message);
     setRows(rows.filter((r) => r.id !== id));
@@ -82,9 +92,25 @@ const ContactSubmissions = () => {
                     <Button variant="outline" size="sm" onClick={() => toggleRead(r)}>
                       {r.read ? "Mark unread" : "Mark read"}
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => remove(r.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete message?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete the message from {r.name}. This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => remove(r.id)}>Delete</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               </CardContent>

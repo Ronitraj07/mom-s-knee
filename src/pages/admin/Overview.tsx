@@ -2,23 +2,30 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, Users, FileText } from "lucide-react";
+import { toast } from "sonner";
 
 const Overview = () => {
   const [stats, setStats] = useState({ contact: 0, contactUnread: 0, waitlist: 0, content: 0 });
 
   useEffect(() => {
     (async () => {
-      const [c, cu, w, ct] = await Promise.all([
-        supabase.from("contact_submissions").select("*", { count: "exact", head: true }),
-        supabase.from("contact_submissions").select("*", { count: "exact", head: true }).eq("read", false),
+      // Use 3 queries instead of 4 — fetch contact rows once and compute unread client-side
+      const [contactRes, waitlistRes, contentRes] = await Promise.all([
+        supabase.from("contact_submissions").select("read"),
         supabase.from("waitlist_signups").select("*", { count: "exact", head: true }),
         supabase.from("site_content").select("*", { count: "exact", head: true }),
       ]);
+
+      if (contactRes.error) { toast.error(`Contact: ${contactRes.error.message}`); return; }
+      if (waitlistRes.error) { toast.error(`Waitlist: ${waitlistRes.error.message}`); return; }
+      if (contentRes.error) { toast.error(`Content: ${contentRes.error.message}`); return; }
+
+      const contactRows = contactRes.data ?? [];
       setStats({
-        contact: c.count ?? 0,
-        contactUnread: cu.count ?? 0,
-        waitlist: w.count ?? 0,
-        content: ct.count ?? 0,
+        contact: contactRows.length,
+        contactUnread: contactRows.filter((r) => !r.read).length,
+        waitlist: waitlistRes.count ?? 0,
+        content: contentRes.count ?? 0,
       });
     })();
   }, []);

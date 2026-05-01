@@ -28,25 +28,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const handleSession = (s: Session | null) => {
       setSession(s);
       setUser(s?.user ?? null);
-
-      // ✅ ADMIN CHECK (INSTANT — NO API)
-      if (s?.user?.email && ADMIN_EMAILS.includes(s.user.email)) {
-        setIsAdmin(true);
-      } else {
-        setIsAdmin(false);
-      }
-
+      setIsAdmin(
+        s?.user?.email ? ADMIN_EMAILS.includes(s.user.email) : false
+      );
       setLoading(false);
     };
 
-    const { data: sub } = supabase.auth.onAuthStateChange(
-      (_event, newSession) => {
-        handleSession(newSession);
-      }
-    );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      handleSession(session);
+    // Rely solely on onAuthStateChange — it fires INITIAL_SESSION first,
+    // so we never need a separate getSession() call (which caused a race condition).
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      handleSession(newSession);
     });
 
     return () => sub.subscription.unsubscribe();
@@ -59,7 +50,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         redirectTo: `${window.location.origin}/admin`,
       },
     });
-
     if (error) throw error;
   };
 

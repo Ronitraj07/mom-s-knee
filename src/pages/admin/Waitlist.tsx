@@ -1,16 +1,34 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type Row = { id: string; name: string; email: string; phone: string | null; created_at: string };
+
+// Sanitize a CSV cell value to prevent formula injection
+const sanitizeCsvCell = (value: string): string => {
+  const dangerous = /^[=+\-@\t\r]/;
+  const escaped = value.replace(/"/g, '""');
+  return dangerous.test(escaped) ? `'${escaped}` : escaped;
+};
 
 const Waitlist = () => {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("waitlist_signups")
@@ -19,22 +37,26 @@ const Waitlist = () => {
     setLoading(false);
     if (error) return toast.error(error.message);
     setRows(data ?? []);
-  };
-  useEffect(() => {
-    load();
   }, []);
 
+  useEffect(() => {
+    load();
+  }, [load]);
+
   const remove = async (id: string) => {
-    if (!confirm("Remove this signup?")) return;
     const { error } = await supabase.from("waitlist_signups").delete().eq("id", id);
     if (error) return toast.error(error.message);
     setRows(rows.filter((r) => r.id !== id));
+    toast.success("Removed from waitlist");
   };
 
   const exportCsv = () => {
     const csv = [
       "name,email,phone,created_at",
-      ...rows.map((r) => `"${r.name}","${r.email}","${r.phone ?? ""}","${r.created_at}"`),
+      ...rows.map(
+        (r) =>
+          `"${sanitizeCsvCell(r.name)}","${sanitizeCsvCell(r.email)}","${sanitizeCsvCell(r.phone ?? "")}","${r.created_at}"`
+      ),
     ].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -42,6 +64,7 @@ const Waitlist = () => {
     a.href = url;
     a.download = `waitlist-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -81,9 +104,25 @@ const Waitlist = () => {
                     {new Date(r.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Button variant="ghost" size="sm" onClick={() => remove(r.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Remove signup?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently remove <strong>{r.name}</strong> ({r.email}) from the waitlist.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => remove(r.id)}>Remove</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </td>
                 </tr>
               ))}

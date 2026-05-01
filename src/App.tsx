@@ -17,8 +17,6 @@ import ContactSubmissions from "./pages/admin/ContactSubmissions";
 import Waitlist from "./pages/admin/Waitlist";
 import Media from "./pages/admin/Media";
 
-
-// 🔥 FIX: Disable retry spam
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -36,6 +34,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <Analytics />
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Index />} />
@@ -58,7 +57,6 @@ const App = () => (
           </Routes>
         </AuthProvider>
       </BrowserRouter>
-      <Analytics />
     </TooltipProvider>
   </QueryClientProvider>
 );
