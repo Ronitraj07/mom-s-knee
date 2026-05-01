@@ -14,13 +14,12 @@ type AuthCtx = {
 const AuthContext = createContext<AuthCtx | undefined>(undefined);
 
 /** Check admin role server-side via the has_role() DB function.
- *  This replaces the hardcoded ADMIN_EMAILS array which was
- *  (a) visible in the compiled JS bundle and
- *  (b) entirely bypassable since it ran only on the client. */
+ *  DB signature is: has_role(_user_id uuid, _role app_role)
+ *  Note: _user_id comes FIRST — matching the existing RLS policy signature. */
 const checkIsAdmin = async (userId: string): Promise<boolean> => {
   const { data, error } = await supabase.rpc("has_role", {
-    _role: "admin",
     _user_id: userId,
+    _role: "admin",
   });
   if (error) {
     console.error("[useAuth] has_role check failed:", error.message);
@@ -50,8 +49,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     };
 
-    // Rely solely on onAuthStateChange — fires INITIAL_SESSION on mount,
-    // so no separate getSession() call is needed (that caused a race condition).
     const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
       handleSession(newSession);
     });
