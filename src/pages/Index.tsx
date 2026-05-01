@@ -1,26 +1,27 @@
-import Header from "../components/header/Header";
-import Footer from "../components/footer/Footer";
-import LargeHero from "../components/content/LargeHero";
-import FiftyFiftySection from "../components/content/FiftyFiftySection";
-import OneThirdTwoThirdsSection from "../components/content/OneThirdTwoThirdsSection";
-import ProductCarousel from "../components/content/ProductCarousel";
-import EditorialSection from "../components/content/EditorialSection";
+import { useScrollReveal } from "@/hooks/useScrollReveal";
+import Hero from "@/components/landing/Hero";
+import ProblemSection from "@/components/landing/ProblemSection";
+import SolutionTeaser from "@/components/landing/SolutionTeaser";
+import ScienceSection from "@/components/landing/ScienceSection";
+import ProductTeaser from "@/components/landing/ProductTeaser";
+import AudienceSection from "@/components/landing/AudienceSection";
+import WaitlistSection from "@/components/landing/WaitlistSection";
+import Footer from "@/components/landing/Footer";
 
 const Index = () => {
+  useScrollReveal();
+
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
-      <main className="pt-6">
-        <FiftyFiftySection />
-        <ProductCarousel />
-        <LargeHero />
-        <OneThirdTwoThirdsSection />
-        <EditorialSection />
-      </main>
-      
+    <main className="min-h-screen bg-background text-foreground">
+      <Hero />
+      <ProblemSection />
+      <SolutionTeaser />
+      <ScienceSection />
+      <ProductTeaser />
+      <AudienceSection />
+      <WaitlistSection />
       <Footer />
-    </div>
+    </main>
   );
 };
 
