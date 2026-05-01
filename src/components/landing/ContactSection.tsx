@@ -28,7 +28,8 @@ const ContactSection = () => {
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
 
     setSubmitting(true);
-    const { error } = await supabase.from("contact_submissions").insert([parsed.data]);
+    const { name, email, message } = parsed.data as { name: string; email: string; message: string };
+    const { error } = await supabase.from("contact_submissions").insert([{ name, email, message }]);
     setSubmitting(false);
     if (error) return toast.error(error.message);
     setSubmitted(true);
