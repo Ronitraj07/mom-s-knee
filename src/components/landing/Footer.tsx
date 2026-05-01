@@ -1,4 +1,16 @@
+import { useSiteContent } from "@/hooks/useSiteContent";
+
 const Footer = () => {
+  const { content } = useSiteContent(["socials", "motto"]);
+  const socials = content.socials ?? {};
+  const motto = (content.motto?.text as string) || "Move freely again.";
+
+  const links: { label: string; href: string }[] = [];
+  if (socials.instagram) links.push({ label: "Instagram", href: socials.instagram });
+  if (socials.facebook) links.push({ label: "Facebook", href: socials.facebook });
+  if (socials.tiktok) links.push({ label: "TikTok", href: socials.tiktok });
+  if (socials.email) links.push({ label: "Contact", href: `mailto:${socials.email}` });
+
   return (
     <footer className="border-t border-border bg-background py-14">
       <div className="container max-w-6xl">
@@ -13,21 +25,27 @@ const Footer = () => {
             <p className="font-serif text-3xl text-foreground font-light tracking-tight">
               Mom's <span className="italic text-primary">Knee</span>
             </p>
-            <p className="mt-2 font-serif text-sm text-muted-foreground italic">
-              Move freely again.
-            </p>
+            <p className="mt-2 font-serif text-sm text-muted-foreground italic">{motto}</p>
           </div>
 
-          <nav className="flex items-center gap-6 text-sm text-muted-foreground font-light">
-            <a href="#" aria-label="Instagram" className="hover:text-primary transition-smooth">
-              Instagram
-            </a>
-            <a href="#" aria-label="LinkedIn" className="hover:text-primary transition-smooth">
-              LinkedIn
-            </a>
-            <a href="#" aria-label="Email" className="hover:text-primary transition-smooth">
-              Contact
-            </a>
+          <nav className="flex items-center gap-6 text-sm text-muted-foreground font-light flex-wrap">
+            {links.length > 0 ? (
+              links.map((l) => (
+                <a
+                  key={l.label}
+                  href={l.href}
+                  target={l.href.startsWith("http") ? "_blank" : undefined}
+                  rel="noreferrer"
+                  className="hover:text-primary transition-smooth"
+                >
+                  {l.label}
+                </a>
+              ))
+            ) : (
+              <a href="#contact" className="hover:text-primary transition-smooth">
+                Contact
+              </a>
+            )}
           </nav>
         </div>
 
