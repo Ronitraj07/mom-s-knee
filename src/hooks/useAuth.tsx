@@ -20,44 +20,62 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
-      setUser(newSession?.user ?? null);
-      if (newSession?.user) {
-        setTimeout(() => checkAdmin(newSession.user.id), 0);
-      } else {
-        setIsAdmin(false);
-      }
-    });
+    // 🔁 Listen to auth changes
+    const { data: sub } = supabase.auth.onAuthStateChange(
+      async (_event, newSession) => {
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
 
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      if (s?.user) {
-        checkAdmin(s.user.id).finally(() => setLoading(false));
-      } else {
+        if (newSession?.user) {
+          await checkAdmin(); // ✅ wait for session before querying
+        } else {
+          setIsAdmin(false);
+        }
+
         setLoading(false);
       }
+    );
+
+    // 🔍 Initial session check
+    supabase.auth.getSession().then(async ({ data: { session: s } }) => {
+      setSession(s);
+      setUser(s?.user ?? null);
+
+      if (s?.user) {
+        await checkAdmin(); // ✅ safe call
+      }
+
+      setLoading(false);
     });
 
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  const checkAdmin = async (userId: string) => {
-    const { data } = await supabase
+  // ✅ FIXED: No manual user_id filter
+  const checkAdmin = async () => {
+    const { data, error } = await supabase
       .from("user_roles")
       .select("role")
-      .eq("user_id", userId)
       .eq("role", "admin")
       .maybeSingle();
+
+    if (error) {
+      console.error("Admin check error:", error);
+      setIsAdmin(false);
+      return;
+    }
+
     setIsAdmin(!!data);
   };
 
   const signInWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/admin` },
+      options: {
+        redirectTo: `${window.location.origin}/admin`,
+      },
     });
+
     if (error) throw error;
   };
 
@@ -67,7 +85,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, isAdmin, loading, signInWithGoogle, signOut }}>
+    <AuthContext.Provider
+      value={{ user, session, isAdmin, loading, signInWithGoogle, signOut }}
+    >
       {children}
     </AuthContext.Provider>
   );
