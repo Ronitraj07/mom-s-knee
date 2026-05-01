@@ -17,7 +17,18 @@ import ContactSubmissions from "./pages/admin/ContactSubmissions";
 import Waitlist from "./pages/admin/Waitlist";
 import Media from "./pages/admin/Media";
 
-const queryClient = new QueryClient();
+
+// 🔥 FIX: Disable retry spam
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      refetchOnReconnect: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
