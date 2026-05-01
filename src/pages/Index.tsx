@@ -6,6 +6,7 @@ import ScienceSection from "@/components/landing/ScienceSection";
 import ProductTeaser from "@/components/landing/ProductTeaser";
 import AudienceSection from "@/components/landing/AudienceSection";
 import WaitlistSection from "@/components/landing/WaitlistSection";
+import ContactSection from "@/components/landing/ContactSection";
 import Footer from "@/components/landing/Footer";
 
 const Index = () => {
@@ -20,6 +21,7 @@ const Index = () => {
       <ProductTeaser />
       <AudienceSection />
       <WaitlistSection />
+      <ContactSection />
       <Footer />
     </main>
   );

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const waitlistSchema = z.object({
   name: z.string().trim().min(1, "Please enter your name").max(80, "Name is too long"),
@@ -21,7 +22,7 @@ const WaitlistSection = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const parsed = waitlistSchema.safeParse({
@@ -36,12 +37,22 @@ const WaitlistSection = () => {
     }
 
     setSubmitting(true);
-    // Frontend-only: simulate submission. Backend storage to be wired later.
-    setTimeout(() => {
-      setSubmitting(false);
-      setSubmitted(true);
-      toast.success("You're on the list. We'll be in touch.");
-    }, 700);
+    const { name, email, phone } = parsed.data as { name: string; email: string; phone?: string };
+    const { error } = await supabase
+      .from("waitlist_signups")
+      .insert([{ name, email, phone: phone || null }]);
+    setSubmitting(false);
+
+    if (error) {
+      if (error.code === "23505") {
+        toast.error("This email is already on the waitlist.");
+      } else {
+        toast.error(error.message);
+      }
+      return;
+    }
+    setSubmitted(true);
+    toast.success("You're on the list. We'll be in touch.");
   };
 
   return (
