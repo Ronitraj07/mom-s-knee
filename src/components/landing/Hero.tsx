@@ -19,10 +19,10 @@ const Hero = () => {
 
       {/* Top brand mark */}
       <div className="relative z-10 container pt-8 md:pt-10 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <div className="h-2 w-2 rounded-full bg-gold animate-glow-pulse" />
-          <span className="text-xs uppercase tracking-[0.25em] text-foreground/70 font-medium">
-            Pre-launch
+          <span className="font-serif text-lg md:text-xl text-foreground tracking-tight">
+            Mom's <span className="italic text-primary">Knee</span>
           </span>
         </div>
         <span className="hidden sm:block text-xs uppercase tracking-[0.25em] text-foreground/60">
