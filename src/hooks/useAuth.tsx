@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useRef } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -19,35 +19,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // ✅ prevents multiple admin checks
-  const hasCheckedAdmin = useRef(false);
-
   useEffect(() => {
-    const handleSession = async (s: Session | null) => {
+    const handleSession = (s: Session | null) => {
       setSession(s);
       setUser(s?.user ?? null);
 
-      if (s?.user && !hasCheckedAdmin.current) {
-        hasCheckedAdmin.current = true;
-        await checkAdmin();
-      }
-
-      if (!s?.user) {
-        setIsAdmin(false);
-        hasCheckedAdmin.current = false;
-      }
-
+      // ✅ STOP loading immediately (never block UI)
       setLoading(false);
+
+      if (s?.user) {
+        checkAdmin(); // 🚀 async, no await
+      } else {
+        setIsAdmin(false);
+      }
     };
 
     // 🔁 Listen to auth changes
     const { data: sub } = supabase.auth.onAuthStateChange(
-      async (_event, newSession) => {
-        await handleSession(newSession);
+      (_event, newSession) => {
+        handleSession(newSession);
       }
     );
 
-    // 🔍 Initial session
+    // 🔍 Initial session load
     supabase.auth.getSession().then(({ data: { session } }) => {
       handleSession(session);
     });
@@ -55,7 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  // ✅ safe + no spam
+  // ✅ SAFE admin check (no blocking, no crash)
   const checkAdmin = async () => {
     try {
       const { data, error } = await supabase
@@ -89,7 +83,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     await supabase.auth.signOut();
     setIsAdmin(false);
-    hasCheckedAdmin.current = false;
   };
 
   return (
